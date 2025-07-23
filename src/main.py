@@ -9,7 +9,7 @@ def show_main_menu():
     print(border)
     print("*  ST1507 DSAA: Predictive Text Editor (using tries)".ljust(59) + "*")
     print("*  - Done by: Thomas San (2415831) & Tee Lin Kai (2415464)".ljust(59) + "*")
-    print("*  - Class DAAA/2B/10".ljust(59) + "*")
+    print("*  - Class DAAA/FT/2A/02".ljust(59) + "*")
     print(border)
     print()
     print("Please select your choice ('1','2','3','4','5','6','7'):")
