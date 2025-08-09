@@ -1,8 +1,9 @@
 # main.py
-
+from ui.pattern_cli import run_pattern_cli
 from trie.prefix_trie import PrefixTrie
 from ui.construct_cli import run_construct_cli
 from ui.predict_cli import run_predict_cli
+from ui.merge_cli import run_merge_cli
 
 def show_main_menu():
     border = "*" * 60
@@ -16,8 +17,8 @@ def show_main_menu():
     print("1. Construct/Edit Trie")
     print("2. Predict/Restore Text")
     print("-" * 44)
-    print("3. Extra Feature One (Thomas San):")
-    print("4. Extra Feature Two (Thomas San):")
+    print("3. Advanced Pattern Search (Glob+) (Thomas San):")
+    print("4. Merge Manager (Thomas San):")
     print("-" * 44)
     print("5. Extra Feature One (Tee Lin Kai):")
     print("6. Extra Feature Two (Tee Lin Kai):")
@@ -37,8 +38,11 @@ def main():
         elif choice == '2':
             run_predict_cli(trie)
 
-        elif choice in ['3', '4']:
-            print("Feature under construction (Thomas San).")
+        elif choice == '3':
+            run_pattern_cli(trie)
+
+        elif choice == '4':
+            run_merge_cli(trie)
 
         elif choice in ['5', '6']:
             print("Feature under construction (Tee Lin Kai).")

@@ -1,6 +1,4 @@
 from .trie_node import TrieNode
-import pickle
-
 class PrefixTrie:
     def __init__(self):
         self.root = TrieNode()
@@ -67,14 +65,19 @@ class PrefixTrie:
         return results
 
     def save_to_file(self, filepath: str) -> None:
-        """Serialize the entire trie to disk using pickle."""
-        with open(filepath, 'wb') as f:
-            pickle.dump(self.root, f)
+        """Save words+frequencies as plain text: one 'word,freq' per line."""
+        with open(filepath, "w", encoding="utf-8") as f:
+            for w in self.list_words():
+                f.write(f"{w},{self.get_frequency(w)}\n")
+    def save_display_to_file(self, filepath: str) -> None:
+        """Save the ASCII display of the trie (same as print_trie)."""
+        with open(filepath, "w", encoding="utf-8") as f:
+            for line in self.as_ascii():
+                f.write(line + "\n")
 
     def load_from_file(self, filepath: str) -> None:
-        """Load a trie from disk (clears current trie)."""
-        with open(filepath, 'rb') as f:
-            self.root = pickle.load(f)
+        """Load keywords+frequencies from a plain text file (word,frequency per line)."""
+        self.load_from_word_freq_file(filepath)
 
     def load_from_word_freq_file(self, filepath: str) -> None:
         """
@@ -160,3 +163,66 @@ class PrefixTrie:
         _rec(self.root, "", 1)
         lines.append("]")
         return lines
+    # --- Merge helpers -------------------------------------------------
+
+    def merge_from_word_freq_file(self, filepath: str) -> tuple[int, int]:
+        """
+        Merge words from a word,freq TXT into the current trie (no clearing).
+        Internally loads into a temporary trie and performs a fast structural merge.
+        Returns (new_words_added, existing_words_updated).
+        """
+        tmp = PrefixTrie()              # same class, same module → safe to construct
+        tmp.load_from_word_freq_file(filepath)
+        return self.merge_trie(tmp)     # uses _merge_nodes/_clone_subtree/_count_words
+
+    def merge_trie(self, other: "PrefixTrie") -> tuple[int, int]:
+        """Merge `other` trie into this trie. Returns (added, updated)."""
+        return self._merge_nodes(self.root, other.root)
+
+    # --- Internal: recursive structural merge --------------------------
+
+    def _merge_nodes(self, dst, src) -> tuple[int, int]:
+        """
+        Merge src subtree into dst subtree.
+        Returns (new_words_added, existing_words_updated).
+        """
+        added = updated = 0
+
+        # If src ends a word, add/accumulate at dst
+        if getattr(src, "is_end", False):
+            if getattr(dst, "is_end", False):
+                dst.frequency += src.frequency
+                updated += 1
+            else:
+                dst.is_end = True
+                dst.frequency += src.frequency
+                added += 1
+
+        for ch, src_child in src.children.items():
+            if ch not in dst.children:
+                # Clone the entire subtree once (no shared refs)
+                dst.children[ch] = self._clone_subtree(src_child)
+                added += self._count_words(src_child)
+            else:
+                a, u = self._merge_nodes(dst.children[ch], src_child)
+                added += a
+                updated += u
+
+        return added, updated
+
+    def _clone_subtree(self, node):
+        """Deep-copy a subtree so we don't share nodes across tries."""
+        from .trie_node import TrieNode
+        new = TrieNode()
+        new.is_end = node.is_end
+        new.frequency = node.frequency
+        for ch, child in node.children.items():
+            new.children[ch] = self._clone_subtree(child)
+        return new
+
+    def _count_words(self, node) -> int:
+        """Count distinct words (end markers) in a subtree."""
+        cnt = 1 if getattr(node, "is_end", False) else 0
+        for child in node.children.values():
+            cnt += self._count_words(child)
+        return cnt

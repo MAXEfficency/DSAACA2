@@ -3,16 +3,20 @@ import re
 
 
 def show_predict_menu():
-    print("""
-Predict/Restore Text
-1. Load trie from file    (~)
-2. Display trie           (#)
-3. List all matches       ($)
-4. Restore single word    (?)
-5. Restore full text      (&)
-6. Restore best matches   (@)
-7. Help                   (!)
-8. Back to Main           (\\)
+    print(r"""
+----------------------------------------------------------------
+Predict/Restore Text Commands:
+  '~', '#', '$', '?', '&', '@', '!', '\'
+----------------------------------------------------------------
+~                     (read keywords from file to make Trie)
+#                     (display Trie)
+$ra*nb*w              (list all possible matching keywords)
+?ra*nb*w              (restore a word using best keyword match)
+&                     (restore a text using all matching keywords)
+@                     (restore a text using best keyword matches)
+!                     (print instructions)
+\                     (exit)
+----------------------------------------------------------------
 """)
 
 
@@ -80,12 +84,18 @@ def _apply_restore(in_path: str, out_path: str, trie: PrefixTrie, processor):
 
 
 def run_predict_cli(trie: PrefixTrie):
+    show_predict_menu()
     while True:
-        show_predict_menu()
-        choice = input("Select option: ").strip()
+        cmd = input("> ").strip()
+        if not cmd:
+            continue
 
-        if choice in ['1', '~']:
-            path = _prompt_filepath("Input file (word,frequency)", must_exist=True)
+        op = cmd[0]
+        arg = cmd[1:].strip()  # pattern for $ / ?, otherwise usually empty
+
+        # ~ : load keywords (word,frequency) from file
+        if op == '~':
+            path = _prompt_filepath("Please enter input file", must_exist=True)
             if not path:
                 print("Load cancelled.")
             else:
@@ -95,27 +105,26 @@ def run_predict_cli(trie: PrefixTrie):
                 except Exception as e:
                     print(f"Error loading keywords: {e}")
 
-        elif choice in ['2', '#']:
-            words = trie.list_words()
-            if words:
-                print("Keywords in trie:")
-                for w in words:
-                    print("  ", w)
-            else:
-                print("(Trie is empty)")
+        # # : display trie (ASCII)
+        elif op == '#':
+            trie.print_trie()
 
-        elif choice in ['3', '$']:
-            patt = input("Wildcard pattern (use '*'): ").strip().lower()
+        # $<pattern> : list all matches ranked by freq
+        elif op == '$':
+            if not arg:
+                print("Usage: $<pattern-with-*>   e.g. $ca*")
+                continue
+            patt = arg.lower()
             matches = trie.wildcard_match(patt)
             matches.sort(key=lambda w: trie.get_frequency(w), reverse=True)
-            print(
-                ",".join(f"[{w},{trie.get_frequency(w)}]" for w in matches)
-                if matches else ""
-            )
+            print(",".join(f"[{w},{trie.get_frequency(w)}]" for w in matches) if matches else "")
 
-        elif choice in ['4', '?']:
-            raw = input("Wildcard pattern (use '*'): ").strip()
-            pre, core, post = _extract(raw)
+        # ?<pattern> : best match for a single word
+        elif op == '?':
+            if not arg:
+                print("Usage: ?<pattern-with-*>   e.g. ?ca*")
+                continue
+            pre, core, post = _extract(arg)
             if "*" not in core:
                 print("No wildcard detected.")
             else:
@@ -129,12 +138,13 @@ def run_predict_cli(trie: PrefixTrie):
                 else:
                     print("No match found.")
 
-        elif choice in ['5', '&']:
-            in_f = _prompt_filepath("Input file", must_exist=True)
+        # & : restore a whole text (all matches)
+        elif op == '&':
+            in_f = _prompt_filepath("Please enter input file", must_exist=True)
             if not in_f:
                 print("Restore cancelled.")
                 continue
-            out_f = _prompt_filepath("Output file")
+            out_f = _prompt_filepath("Please enter output file")
             if not out_f:
                 print("Restore cancelled.")
                 continue
@@ -144,12 +154,13 @@ def run_predict_cli(trie: PrefixTrie):
             except Exception as e:
                 print(f"Error during restore: {e}")
 
-        elif choice in ['6', '@']:
-            in_f = _prompt_filepath("Input file", must_exist=True)
+        # @ : restore a whole text (best matches)
+        elif op == '@':
+            in_f = _prompt_filepath("Please enter input file", must_exist=True)
             if not in_f:
                 print("Restore cancelled.")
                 continue
-            out_f = _prompt_filepath("Output file")
+            out_f = _prompt_filepath("Please enter output file")
             if not out_f:
                 print("Restore cancelled.")
                 continue
@@ -159,11 +170,13 @@ def run_predict_cli(trie: PrefixTrie):
             except Exception as e:
                 print(f"Error during restore: {e}")
 
-        elif choice in ['7', '!']:
-            continue  # redraw menu
+        # ! : reprint instructions
+        elif op == '!':
+            show_predict_menu()
 
-        elif choice in ['8', '\\']:
+        # \ : exit to main
+        elif op == '\\':
             break
 
         else:
-            print("Invalid choice; enter '!' for help.")
+            print("Unknown command. Enter '!' for help.")

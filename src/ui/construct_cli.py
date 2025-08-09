@@ -53,18 +53,16 @@ def run_construct_cli(trie: PrefixTrie):
             trie.print_trie()
 
         elif op == '@':
-            # prompt after typing @
             path = input("Please enter output filename: ").strip()
             if not path:
                 print("Save cancelled.")
                 continue
             try:
-                with open(path, 'w', encoding='utf-8') as f:
-                    for line in trie.as_ascii():
-                        f.write(line + "\n")
+                trie.save_display_to_file(path)   # ASCII view
                 print(f"Trie display saved to {path}")
             except Exception as e:
                 print(f"Error saving trie: {e}")
+
 
         elif op == '~':
             if not arg:
@@ -83,13 +81,11 @@ def run_construct_cli(trie: PrefixTrie):
                 print("Usage: =<filepath>")
                 continue
             try:
-                words = trie.list_words()
-                with open(arg, 'w', encoding='utf-8') as f:
-                    for w in words:
-                        f.write(f"{w},{trie.get_frequency(w)}\n")
-                print(f"Dumped {len(words)} keywords to {arg}")
+                trie.save_to_file(arg)            # word,frequency dump
+                print(f"Dumped {len(trie.list_words())} keywords to {arg}")
             except Exception as e:
                 print(f"Error dumping keywords: {e}")
+
 
         elif op == '!':
             show_instructions()

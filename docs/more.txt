@@ -1,0 +1,4 @@
+cat,4
+cot,2
+dog,1
+hose,2
