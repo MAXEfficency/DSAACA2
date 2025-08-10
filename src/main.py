@@ -4,6 +4,7 @@ from trie.prefix_trie import PrefixTrie
 from ui.construct_cli import run_construct_cli
 from ui.predict_cli import run_predict_cli
 from ui.merge_cli import run_merge_cli
+from ui.trie_graph_cli import preview_trie_map
 
 def show_main_menu():
     border = "*" * 60
@@ -20,7 +21,7 @@ def show_main_menu():
     print("3. Advanced Pattern Search (Glob+) (Thomas San):")
     print("4. Merge Manager (Thomas San):")
     print("-" * 44)
-    print("5. Extra Feature One (Tee Lin Kai):")
+    print("5. PrefixTree Visualizer (Tee Lin Kai):")
     print("6. Extra Feature Two (Tee Lin Kai):")
     print("-" * 44)
     print("7. Exit")
@@ -44,8 +45,11 @@ def main():
         elif choice == '4':
             run_merge_cli(trie)
 
-        elif choice in ['5', '6']:
-            print("Feature under construction (Tee Lin Kai).")
+        elif choice == '5':
+            preview_trie_map(trie)
+
+        elif choice == '6':    
+            print('')
 
         elif choice in ['7', 'exit', 'q', 'quit']:
             print("Goodbye!")
