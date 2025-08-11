@@ -5,6 +5,7 @@ from ui.construct_cli import run_construct_cli
 from ui.predict_cli import run_predict_cli
 from ui.merge_cli import run_merge_cli
 from ui.trie_graph_cli import preview_trie_map
+from ui.stats_cli import show_stats_menu
 
 def show_main_menu():
     border = "*" * 60
@@ -22,7 +23,7 @@ def show_main_menu():
     print("4. Merge Manager (Thomas San):")
     print("-" * 44)
     print("5. PrefixTree Visualizer (Tee Lin Kai):")
-    print("6. Extra Feature Two (Tee Lin Kai):")
+    print("6. Trie Stats (Tee Lin Kai):")
     print("-" * 44)
     print("7. Exit")
     print("Enter choice: ", end="")
@@ -49,7 +50,7 @@ def main():
             preview_trie_map(trie)
 
         elif choice == '6':    
-            print('')
+            show_stats_menu(trie)
 
         elif choice in ['7', 'exit', 'q', 'quit']:
             print("Goodbye!")
