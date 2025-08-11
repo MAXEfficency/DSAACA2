@@ -14,23 +14,35 @@ class PrefixTrie:
         node.frequency += frequency
 
     def delete(self, word: str) -> bool:
-        """Delete a word from the trie. Return True if deleted."""
-        def _delete(node: TrieNode, word: str, depth: int) -> bool:
+        """Delete a word. Return True if the word existed and was deleted."""
+        def _delete(node: TrieNode, depth: int) -> tuple[bool, bool]:
+            """
+            Returns (deleted, should_prune).
+            deleted      -> whether we actually removed the word (unset is_end)
+            should_prune -> whether this node can be pruned from its parent
+            """
             if depth == len(word):
                 if not node.is_end:
-                    return False
+                    return False, False
                 node.is_end = False
-                return len(node.children) == 0
-            char = word[depth]
-            child = node.children.get(char)
+                # prune only if this node has no children
+                return True, len(node.children) == 0
+
+            ch = word[depth]
+            child = node.children.get(ch)
             if not child:
-                return False
-            should_prune = _delete(child, word, depth + 1)
-            if should_prune:
-                del node.children[char]
-                return not node.is_end and len(node.children) == 0
-            return False
-        return _delete(self.root, word, 0)
+                return False, False
+
+            deleted, child_prune = _delete(child, depth + 1)
+            if child_prune:
+                del node.children[ch]
+
+            # current node should be pruned if it's not end-of-word and lost its children
+            prune_here = (not node.is_end) and (len(node.children) == 0)
+            return deleted, prune_here
+
+        deleted, _ = _delete(self.root, 0)
+        return deleted
 
     def search(self, word: str) -> bool:
         """Return True if the exact word is in the trie."""
