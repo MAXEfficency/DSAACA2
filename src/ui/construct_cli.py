@@ -1,5 +1,4 @@
 # ui/construct_cli.py
-
 from trie.prefix_trie import PrefixTrie
 
 def show_instructions():
@@ -10,11 +9,35 @@ Construct/Edit Trie Commands:
   ?<word>        (search for a keyword)
   #              (display Trie)
   @              (write Trie display to file)
-  ~<filename>    (load keywords from file)
-  =<filename>    (dump keywords (word,frequency) to file)
+  ~              (load keywords from file)
+  =              (dump keywords (word,frequency) to file)
   !              (print these instructions)
   \              (exit back to Main Menu)
 """)
+
+def _prompt_filepath(prompt: str, must_exist: bool = False) -> str | None:
+    """
+    Same behavior as in Predict:
+      - prompts for a path
+      - if must_exist, keeps asking until a file is found or user cancels with '\'
+      - returns None on cancel
+    """
+    while True:
+        raw = input(f"{prompt} [\\ to cancel]: ").strip()
+        if raw == '\\':
+            return None
+        path = raw.strip('"').strip("'")
+        if must_exist:
+            try:
+                open(path, 'r').close()
+                return path
+            except FileNotFoundError:
+                print(f"File not found: {path}. Please try again.")
+            except Exception as e:
+                print(f"Error accessing file: {e}")
+                return None
+        else:
+            return path
 
 def run_construct_cli(trie: PrefixTrie):
     show_instructions()
@@ -44,48 +67,42 @@ def run_construct_cli(trie: PrefixTrie):
                 print("Usage: ?<keyword>")
                 continue
             found = trie.search(arg)
-            if found:
-                print(f"Keyword \"{arg}\" is found")
-            else:
-                print(f"Keyword \"{arg}\" is not found")
+            print(f"Keyword \"{arg}\" is found" if found else f"Keyword \"{arg}\" is not found")
 
         elif op == '#':
             trie.print_trie()
 
         elif op == '@':
-            path = input("Please enter output filename: ").strip()
+            path = _prompt_filepath("Please enter output filename")
             if not path:
-                print("Save cancelled.")
-                continue
+                print("Save cancelled."); continue
             try:
                 trie.save_display_to_file(path)   # ASCII view
                 print(f"Trie display saved to {path}")
             except Exception as e:
                 print(f"Error saving trie: {e}")
 
-
         elif op == '~':
-            if not arg:
-                print("Usage: ~<filepath>")
-                continue
+            # NEW: prompt like Predict does
+            path = _prompt_filepath("Please enter input file (word,frequency)", must_exist=True)
+            if not path:
+                print("Load cancelled."); continue
             try:
-                trie.load_from_word_freq_file(arg)
-                print(f"Keywords loaded from {arg} into trie.")
-            except FileNotFoundError:
-                print(f"File not found: {arg}")
+                trie.load_from_word_freq_file(path)
+                print(f"Keywords loaded from {path} into trie.")
             except Exception as e:
                 print(f"Error loading keywords: {e}")
 
         elif op == '=':
-            if not arg:
-                print("Usage: =<filepath>")
-                continue
+            # NEW: prompt like Predict does
+            path = _prompt_filepath("Please enter output file")
+            if not path:
+                print("Dump cancelled."); continue
             try:
-                trie.save_to_file(arg)            # word,frequency dump
-                print(f"Dumped {len(trie.list_words())} keywords to {arg}")
+                trie.save_to_file(path)  # word,frequency dump
+                print(f"Dumped {len(trie.list_words())} keywords to {path}")
             except Exception as e:
                 print(f"Error dumping keywords: {e}")
-
 
         elif op == '!':
             show_instructions()

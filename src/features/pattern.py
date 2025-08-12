@@ -5,18 +5,17 @@ from typing import List, Tuple, Set, Optional
 Token = Tuple[str, object]  # ('LIT', 'c') | ('ANY', None) | ('STAR', None) | ('SET', frozenset({...}))
 
 def is_glob_pattern(s: str) -> bool:
-    """Quick check: does the token contain any glob meta chars?"""
-    return any(ch in s for ch in ['?', '*', '[', '\\'])
+    # We only treat ?, *, [ as special now
+    return any(ch in s for ch in ['?', '*', '['])
 
 def _parse_charclass(pat: str, i: int) -> Tuple[frozenset[str], int]:
     """
     Parse a character class starting at pat[i-1] == '['.
-    Supports sets [abc], ranges [a-z], and escapes like [\-\]].
+    Supports sets [abc] and ranges [a-z]. No backslash escapes.
     Returns (set_of_chars, next_index_after_closing_bracket).
-    Raises ValueError if ']' not found.
     """
     chars: Set[str] = set()
-    j = i  # current index inside [...]
+    j = i
     if j >= len(pat):
         raise ValueError("Unclosed character class '[' at end of pattern")
 
@@ -26,19 +25,9 @@ def _parse_charclass(pat: str, i: int) -> Tuple[frozenset[str], int]:
         if c == ']' and not first:
             return frozenset(chars), j + 1
 
-        if c == '\\':  # escaped literal inside [...]
-            if j + 1 >= len(pat):
-                raise ValueError("Dangling escape in character class")
-            chars.add(pat[j + 1])
-            j += 2
-            first = False
-            continue
-
         # range like a-z (only if there's something after '-')
         if j + 2 < len(pat) and pat[j + 1] == '-' and pat[j + 2] != ']':
-            start = pat[j]
-            end = pat[j + 2]
-            # ensure increasing order (swap if user typed [z-a])
+            start, end = pat[j], pat[j + 2]
             s_ord, e_ord = sorted((ord(start), ord(end)))
             for code in range(s_ord, e_ord + 1):
                 chars.add(chr(code))
@@ -51,44 +40,24 @@ def _parse_charclass(pat: str, i: int) -> Tuple[frozenset[str], int]:
         j += 1
         first = False
 
-    # no closing ']'
     raise ValueError("Unclosed character class '[' in pattern")
 
 def _parse_pattern(pat: str) -> List[Token]:
-    """
-    Convert pattern string into tokens:
-    - ('LIT', 'c')   literal char
-    - ('ANY', None)  '?'
-    - ('STAR', None) '*'
-    - ('SET', frozenset({...})) for [...]
-    Supports escaping with backslash.
-    """
     tokens: List[Token] = []
     i = 0
     while i < len(pat):
         c = pat[i]
-        if c == '\\':
-            if i + 1 < len(pat):
-                tokens.append(('LIT', pat[i + 1]))
-                i += 2
-            else:
-                # dangling '\' → treat as literal '\'
-                tokens.append(('LIT', '\\'))
-                i += 1
-        elif c == '?':
-            tokens.append(('ANY', None))
-            i += 1
+        if c == '?':
+            tokens.append(('ANY', None)); i += 1
         elif c == '*':
-            tokens.append(('STAR', None))
-            i += 1
+            tokens.append(('STAR', None)); i += 1
         elif c == '[':
             char_set, nxt = _parse_charclass(pat, i + 1)
-            tokens.append(('SET', char_set))
-            i = nxt
+            tokens.append(('SET', char_set)); i = nxt
         else:
-            tokens.append(('LIT', c))
-            i += 1
+            tokens.append(('LIT', c)); i += 1
     return tokens
+
 
 def glob_match(trie, pattern: str, top_k: Optional[int] = None) -> List[Tuple[str, int]]:
     """
